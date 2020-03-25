@@ -13,6 +13,8 @@ const {verificationToken} = require('../middelwares/verification.js')
 router.post('/login', authController.login)
 router.post('/register', authController.register)
 router.get('/',verificationToken,authController.test)
+router.get('/home',authController.home)
+router.post('/refresh',authController.refresh)
 
 
 module.exports = router

@@ -4,6 +4,7 @@
  * @param database -Import client connection
  */
 const dataBase = require('../config/connection')
+const moment =  require('moment')
 
 /**
  * @method insert
@@ -38,3 +39,23 @@ exports.getUser = (username,callback) => {
     });
 
   };
+
+  exports.insertRefresh = (username,token,callback)=>{
+    const expire= moment().add(1,"years").format('YYYY-MM-DD')
+
+    const sql = `INSERT INTO refresh_tokens (name,token,banned,expires) VALUES(?,?,?,?)`
+    dataBase.connection.query(sql,[username,token,0,expire],(err,row)=>{
+        if(err)throw err;
+        return callback(err,row)
+    })
+  }
+
+
+  exports.getRefreshToken = (username,refreshToken,callback)=>{
+    const sql = `SELECT name,expires from refresh_tokens WHERE name = ? AND token = ? AND banned = 0 `;
+    dataBase.connection.query(sql,[username,refreshToken],(err,row)=>{
+      if(err)throw err
+      return callback(err,row)
+
+    })
+  }
