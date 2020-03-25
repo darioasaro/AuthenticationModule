@@ -82,7 +82,6 @@ Create same table or modify service/database to implement methods for save and g
 
 ## Build with 🛠️
 
-_Menciona las herramientas que utilizaste para crear tu proyecto_
 
 * [NODE JS](https://nodejs.org/es/) - Framework
 * [NPM](https://www.npmjs.com/) - Handler dependencies
