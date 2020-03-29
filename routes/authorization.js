@@ -15,6 +15,8 @@ router.post('/register', authController.register)
 router.get('/',verificationToken,authController.test)
 router.get('/home',authController.home)
 router.post('/refresh',authController.refresh)
+router.post('/restore',authController.restore)
+router.post('/change',authController.changePass)
 
 
 module.exports = router

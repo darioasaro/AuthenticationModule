@@ -15,6 +15,7 @@ const jwt = require("jsonwebtoken");
 const config = require("../../config/config.js");
 const { generateToken } = require("../../util/tokenGen.js");
 const moment = require("moment");
+const {sendEmail} = require('../../service/mailer.js')
 
 /**
  * @method register
@@ -143,6 +144,25 @@ exports.test = (req, res) => {
   res.json({ result: "ok!", data: { user: user } });
 };
 
+exports.restore = (req,res)=>{
+  const mail = req.body.mail
+ sendEmail(mail,(err,result)=>{
+   if (err)res.status(500).send("Internal Server Error")
+   else{
+    const payload = {
+      user: mail.user,
+      check: true
+    };
+    const token = jwt.sign(payload, config.key, {
+      expiresIn: 1440
+    });
+     res.json({result:"1985OK",message:result})
+   }
+ })
+}
+exports.changePass = (req,res)=>{
+  res.send("changed")
+}
 exports.home = (req, res) => {
   res.send("Welcome to Authorization Module");
 };
