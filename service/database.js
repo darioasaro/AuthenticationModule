@@ -13,15 +13,24 @@ const moment =  require('moment')
  * @param password -Password of user(Hashed Password)
  * @callback - Callback for return results 
  */
-exports.insert = (user,password,id_role,callback)=>{
-    dataBase.connection.query(`INSERT INTO users (name,password,id_role) VALUES (?,?,?)`,
-    [user,password,id_role],(err,rows)=>{
+exports.insert = (user,password,email,id_role,callback)=>{
+    dataBase.connection.query(`INSERT INTO users (name,password,id_role,email) VALUES (?,?,?,?)`,
+    [user,password,id_role,email],(err,rows)=>{
         if(err)throw err
-        callback(err,rows)
+       return callback(err,rows)
     })
 
 }
 
+exports.updatePass=(user,password,callback)=>{
+  console.log('user update db',user)
+  dataBase.connection.query('UPDATE users SET password = ? WHERE name = ?',
+  [password,user],
+  (err,row)=>{
+      if(err)throw err
+      return callback(err,row)
+  })
+}
 
 /**
  * @method getUser
@@ -31,9 +40,11 @@ exports.insert = (user,password,id_role,callback)=>{
  */
 
 exports.getUser = (username,callback) => {
-    let sql = `SELECT name,password,id_role FROM users WHERE name = (?)`;
+  
+    let sql = `SELECT name,password,email,id_role FROM users WHERE name = (?)`;
     
     dataBase.connection.query(sql, [username], (err, rows) => {
+     
       if (err) throw err;
       return callback(err, rows);
     });
@@ -50,8 +61,27 @@ exports.getUser = (username,callback) => {
     })
   }
 
+  exports.haveRefresh = (username,callback)=>{
+    const sql = `SELECT name,expires from refresh_tokens WHERE name = ? AND banned = 0 `;
+    dataBase.connection.query(sql,[username],(err,row)=>{
+      if(err)throw err
+      return callback(err,row)
+
+    })
+  }
+
+  exports.deleteRefreshToken = (username,callback)=>{
+    const sql = `UPDATE refresh_tokens SET banned = 1 WHERE name = ?`;
+    dataBase.connection.query(sql,[username],(err,row)=>{
+      if(err)throw err
+      return callback(err,row)
+
+    })
+  }
+
 
   exports.getRefreshToken = (username,refreshToken,callback)=>{
+    console.log(username,refreshToken)
     const sql = `SELECT name,expires from refresh_tokens WHERE name = ? AND token = ? AND banned = 0 `;
     dataBase.connection.query(sql,[username,refreshToken],(err,row)=>{
       if(err)throw err

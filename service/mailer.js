@@ -1,8 +1,8 @@
 var nodemailer = require('nodemailer')
 //Modulo para enviar Email
-exports.sendEmail = (mail,cb)=>{
+exports.sendEmail = (mail,code,cb)=>{
     // Se Define  el transporter
-        const url_recover = "***url para cambiar contraseña***"
+        const url_recover = "localhost:3000/api/auth/change"
         var transporter = nodemailer.createTransport({
             service: 'Gmail',
             auth: {
@@ -15,17 +15,18 @@ exports.sendEmail = (mail,cb)=>{
         from: process.env.USER_MAIL,
         to: mail.email,
         subject:"Reset Your Password",
-        text: `Use this link to reset your password. The link is only valid for 24 hours.
+        text: `Use this link and this code to reset your password. The code is only valid for 15 minutes.
 
         [Authentication Server] ( https://example.com )
         
         ************
-        Hi ${mail.user},
+        Hi ${mail.username},
         ************
         
-        You recently requested to reset your password for your [Product Name] account. Use the button below to reset it. This password reset is only valid for the next 24 hours.
+        You recently requested to reset your password for your Authentication Server account. Use the button below to reset it,remember ***YOU NEED THE CODE***. This password reset is only valid for the next 15 minutes.
         
-        Reset your password ( ${url_recover} )
+        Reset your password  ${url_recover} 
+        CODE : ${code}
         
         For security, this request was received from a {{operating_system}} device using {{browser_name}}. If you did not request a password reset, please ignore this email or contact support ( {{ support_url }} ) if you have questions.
         
@@ -33,8 +34,6 @@ exports.sendEmail = (mail,cb)=>{
         The AuthServer Team
         
         If you’re having trouble with the button above, copy and paste the URL below into your web browser.
-        
-        ${url_recover}
         
         © 2020 AuthServer. All rights reserved.
         

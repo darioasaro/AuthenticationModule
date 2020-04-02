@@ -15,7 +15,8 @@ const jwt = require("jsonwebtoken");
 const config = require("../../config/config.js");
 const { generateToken } = require("../../util/tokenGen.js");
 const moment = require("moment");
-const {sendEmail} = require('../../service/mailer.js')
+const { sendEmail } = require("../../service/mailer.js");
+const redis =  require("../../service/redis.js")
 
 /**
  * @method register
@@ -27,6 +28,7 @@ const {sendEmail} = require('../../service/mailer.js')
 exports.register = async (req, res) => {
   var username = req.body.username.toLowerCase();
   var password = req.body.password;
+  var email = req.body.email;
   var id_role = req.body.id_role;
   database.getUser(username, (err, row) => {
     if (err) res.status(500).send("Internal Server Error");
@@ -37,6 +39,7 @@ exports.register = async (req, res) => {
             database.insert(
               username,
               hashedPass,
+              email,
               id_role,
               (error, response) => {
                 if (error) throw error;
@@ -65,16 +68,17 @@ exports.register = async (req, res) => {
  * @param refreshToken - Refresh token generated with internal function
  */
 exports.login = async (req, res) => {
+  console.log(req.body)
   var username = req.body.username.toLowerCase();
   var password = req.body.password;
   if (username && password) {
     try {
       await database.getUser(username, (err, row) => {
         if (err) res.status(500).send("Internal Server Error");
-        console.log("row", row[0].password);
+        if(row.length>0){
         bcrypt.compare(password, row[0].password).then(samePass => {
           if (!samePass) {
-            res.status(403).send("Error Login");
+            res.status(403).json({result:false,message:"Error Login"});
           } else {
             us = {
               name: row[0].name,
@@ -89,10 +93,14 @@ exports.login = async (req, res) => {
               expiresIn: 300
             });
             const refreshToken = generateToken();
+            database.deleteRefreshToken(username,(err,row)=>{
+              if (err) res.status(500).send("Internal Server Error");
+
+            })
             database.insertRefresh(us.name, refreshToken, (err, row) => {
               if (err) res.status(500).send("Internal Server Error");
               res.status(200).json({
-                result: "ok!",
+                result: true,
                 accesToken: token,
                 refreshToken: refreshToken
               });
@@ -100,12 +108,19 @@ exports.login = async (req, res) => {
             //-----//
           }
         });
+      }
+        else{
+            res.status(403).json({result:false,message:"User Not Found"})
+        }
       });
+      
+    
+    
     } catch (e) {
       res.status(500).send("Internal Server Error");
     }
   } else {
-    res.status(400).send("Bad Request");
+    res.status(400).json({result:false,message:"Bad Request"});
   }
 };
 
@@ -114,6 +129,7 @@ exports.refresh = async (req, res) => {
   const username = req.body.username;
   database.getRefreshToken(username, refreshToken, (err, row) => {
     if (err) {
+      console.log("error");
       res.status(500).send("Internal Server Error");
     } else {
       if (row.length > 0) {
@@ -130,9 +146,9 @@ exports.refresh = async (req, res) => {
             result: "ok!",
             accesToken: token
           });
-        } else {
-          res.status(401).send("token expired,please Re-login");
         }
+      } else {
+        res.status(401).send("token expired,please Re-login");
       }
     }
   });
@@ -144,25 +160,73 @@ exports.test = (req, res) => {
   res.json({ result: "ok!", data: { user: user } });
 };
 
-exports.restore = (req,res)=>{
-  const mail = req.body.mail
- sendEmail(mail,(err,result)=>{
-   if (err)res.status(500).send("Internal Server Error")
-   else{
-    const payload = {
-      user: mail.user,
-      check: true
-    };
-    const token = jwt.sign(payload, config.key, {
-      expiresIn: 1440
-    });
-     res.json({result:"1985OK",message:result})
-   }
- })
+exports.restorePass = (req, res) => {
+  let us = {username:req.body.username}  
+  database.getUser(us.username,(err,row)=>{
+    if (err) res.status(500).send("Internal Server Error");
+    if(row.length>0){
+      console.log(row)
+      us = {
+        ...us,email:row[0].email
+      }
+      const code = generateToken();
+      redis.insertTtl(us.username,code,900,(err,result)=>{
+        if (err) res.status(500).send("Internal Server Error");
+        sendEmail(us,code, (err, result) => {
+          if (err) res.status(500).send("Internal Server Error");
+          else {
+            res.json({ result: true, message: result });
+          }
+        })
+        console.log("result redis",result)
+        });
+    }
+    else{
+    res.status(400).json({result:false,message:"User Not Found"})
+    }
+  })
+
+};
+exports.changePass = (req, res) => {
+  const user =  req.body.username
+  const password = req.body.password
+  const comparePassword = req.body.compare
+  const code =  req.body.code
+  console.log(user)
+  if(comparePassword == password){
+  redis.get(user,(err,result)=>{
+    if (err)res.status(500).json({result:false,message:"Internal Server Error"});
+    if(code == result){
+      bcrypt.hash(password, BCRYPT_SALT_ROUNDS).
+      then(hashedPass => {
+        try {
+          database.updatePass(
+            user,
+            hashedPass,
+            (error, response) => {
+              if (error) throw error;
+              else {
+                redis.delete(user,(err,result)=>{
+                  if(err)res.status(500).send("Internal Server Error")
+                  res.status(201).json({ result: true});
+                })
+              }
+            }
+          );
+        } catch (err) {
+          res.status(500).json({result:false,message:"Internal Server Error"});
+        }
+      });
+    }
+    else{
+      res.status(401).json({result:false,message:"Expìred or Invalid Code"})
+    }
+  })
 }
-exports.changePass = (req,res)=>{
-  res.send("changed")
+else{
+  res.status(400).json({result:false,message:"Bad Request,check data"})
 }
+};
 exports.home = (req, res) => {
   res.send("Welcome to Authorization Module");
 };
