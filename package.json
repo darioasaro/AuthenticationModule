@@ -4,23 +4,28 @@
   "description": "authentication and register modules",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "mocha test/**/*.js --reporter spec --timeout 5000 --exit",
     "start": "nodemon server/server.js",
-    "docs": " ./node_modules/.bin/jsdoc -c jsdoc.json"
+    "docs": " ./node_modules/.bin/jsdoc -c jsdoc.json",
+    "coverage":"nyc --reporter=html --reporter=text mocha --exit --timeout 15000"
   },
   "author": "Dario Asaro",
   "license": "ISC",
   "dependencies": {
     "bcrypt": "^4.0.1",
     "body-parser": "^1.19.0",
+    "chai": "^4.2.0",
+    "chai-http": "^4.3.0",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "jsdoc": "3.6.3",
     "jsonwebtoken": "^8.5.1",
+    "mocha": "^7.1.1",
     "moment": "^2.24.0",
     "morgan": "^1.10.0",
     "mysql2": "^2.1.0",
     "nodemailer": "^6.4.6",
+    "nyc": "^15.0.0",
     "redis": "^3.0.2"
   }
 }

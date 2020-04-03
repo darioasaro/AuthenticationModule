@@ -90,7 +90,7 @@ exports.login = async (req, res) => {
               check: true
             };
             const token = jwt.sign(payload, config.key, {
-              expiresIn: 300
+              expiresIn: 15
             });
             const refreshToken = generateToken();
             database.deleteRefreshToken(username,(err,row)=>{
@@ -157,7 +157,15 @@ exports.refresh = async (req, res) => {
 //---End point to test verification--//
 exports.test = (req, res) => {
   const user = req.decoded.user;
-  res.json({ result: "ok!", data: { user: user } });
+  if(user&&user.id_role==1){
+    res.json({ result:true, data: { user: user } });
+  }
+  else if(user.id_role != 1){
+    res.status(401).json({result:false,message:"Unauthorized"})
+  }
+  else{
+    res.status(500).json({result:false,message:"Internal Server Error"})
+  }
 };
 
 exports.restorePass = (req, res) => {
